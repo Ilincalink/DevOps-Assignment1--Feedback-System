@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Update Feedback - Feedback App{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>Update Feedback</h2>
+    
+    <form method="POST" class="feedback-form">
+        <div class="form-group">
+            <label for="user">Your Name:</label>
+            <input 
+                type="text" 
+                id="user" 
+                name="user" 
+                required 
+                maxlength="100"
+                placeholder="Enter your name"
+                value="{{ feedback.user }}"
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="comment">Feedback:</label>
+            <textarea 
+                id="comment" 
+                name="comment" 
+                required 
+                maxlength="1000"
+                rows="5"
+                placeholder="Enter your feedback here..."
+            >{{ feedback.comment }}</textarea>
+        </div>
+
+        <div class="form-info">
+            <small class="text-muted">
+                Originally posted on: {{ feedback.timestamp }}
+            </small>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Update Feedback</button>
+            <a href="{{ url_for('read_feedback') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
