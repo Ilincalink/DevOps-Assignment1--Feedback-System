@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Create Feedback - Feedback App{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>Create New Feedback</h2>
+    
+    <form method="POST" class="feedback-form">
+        <div class="form-group">
+            <label for="user">Your Name:</label>
+            <input 
+                type="text" 
+                id="user" 
+                name="user" 
+                required 
+                maxlength="100"
+                placeholder="Enter your name"
+                value="{{ request.form.user if request.form.user }}"
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="comment">Feedback:</label>
+            <textarea 
+                id="comment" 
+                name="comment" 
+                required 
+                maxlength="1000"
+                rows="5"
+                placeholder="Enter your feedback here..."
+            >{{ request.form.comment if request.form.comment }}</textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Submit Feedback</button>
+            <a href="{{ url_for('read_feedback') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
