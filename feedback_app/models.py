@@ -13,7 +13,7 @@ class FeedbackModel:
         self.init_database()
     
     def init_database(self):
-        """Initialise the database and create feedback table if not already there."""
+        """Initiallise the database and create feedback table if not already there."""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
