@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}All Feedback - Feedback App{% endblock %}
+
+{% block content %}
+<div class="feedback-list-container">
+    <div class="header-section">
+        <h2>All Feedback</h2>
+        <a href="{{ url_for('create_feedback') }}" class="btn btn-primary">Add New Feedback</a>
+    </div>
+
+    {% if feedback_list %}
+        <div class="feedback-grid">
+            {% for feedback in feedback_list %}
+            <div class="feedback-card">
+                <div class="feedback-header">
+                    <h3 class="user-name">{{ feedback.user }}</h3>
+                    <small class="timestamp">{{ feedback.timestamp }}</small>
+                </div>
+                
+                <div class="feedback-content">
+                    <p>{{ feedback.comment }}</p>
+                </div>
+                
+                <div class="feedback-actions">
+                    <a href="{{ url_for('update_feedback', feedback_id=feedback.id) }}" 
+                       class="btn btn-small btn-secondary">Edit</a>
+                    <a href="{{ url_for('delete_feedback', feedback_id=feedback.id) }}" 
+                       class="btn btn-small btn-danger"
+                       onclick="return confirm('Are you sure you want to delete this feedback?')">Delete</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <h3>No feedback yet!</h3>
+            <p>Be the first to share your thoughts.</p>
+            <a href="{{ url_for('create_feedback') }}" class="btn btn-primary">Add First Feedback</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
