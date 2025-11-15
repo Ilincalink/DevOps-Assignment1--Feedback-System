@@ -1,12 +1,49 @@
 
 from flask import Flask, render_template, request, redirect, url_for, flash
-from models import FeedbackModel 
+
+from models import FeedbackModel
+from config import SECRET_KEY, DEBUG, HOST, PORT, Messages, MessageCategories
+from validators import validate_feedback_data, sanitize_input
+from logging_config import setup_logging
+
+# Setup logging
+setup_logging()
+
+import logging
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here' # added to avoid the runtime error about the secret key. Learned that the hard way. 
+app.secret_key = SECRET_KEY
+
+def _process_feedback_form() -> tuple[str, str]:
+    """Process and sanitize feedback form data.
+    
+    Returns:
+        Tuple of (user, comment)
+    """
+    user = sanitize_input(request.form.get('user', ''))
+    comment = sanitize_input(request.form.get('comment', ''))
+    return user, comment
+
+
+def _create_feedback_data(user: str, comment: str) -> dict[str, str]:
+    """Create feedback data dictionary.
+    
+    Args:
+        user: Users name
+        comment: User comment
+        
+    Returns:
+        Dictionary containing feedback data
+    """
+    return {
+        'user': user,
+        'comment': comment
+    }
 
 
 feedback_model = FeedbackModel()
+
 
 @app.route('/')
 def index():
@@ -16,34 +53,31 @@ def index():
 
 @app.route('/create_feedback', methods=['GET', 'POST'])
 def create_feedback():
-    """Create a new feedback entry."""
+    """Create a new feedbacck entry."""
     if request.method == 'POST':
-        user = request.form.get('user', '').strip()
-        comment = request.form.get('comment', '').strip()
+        user, comment = _process_feedback_form()
         
-        # Input validation
-        if not user or not comment:
-            flash('Both user and comment fields needed!', 'error')
+        # Validate input
+        is_valid, errors = validate_feedback_data(user, comment)
+        if not is_valid:
+            flash(Messages.FIELDS_REQUIRED, MessageCategories.ERROR)
             return render_template('create.html')
         
         # Create feedback
-        feedback_data = {
-            'user': user,
-            'comment': comment
-        }
+        feedback_data = _create_feedback_data(user, comment)
         
         if feedback_model.create(feedback_data):
-            flash('Feedback created successfully!', 'success')
+            flash(Messages.FEEDBACK_CREATED, MessageCategories.SUCCESS)
             return redirect(url_for('read_feedback'))
         else:
-            flash('Error creating feedback. try again.', 'error')
+            flash(Messages.CREATE_ERROR, MessageCategories.ERROR)
     
     return render_template('create.html')
 
 
 @app.route('/read_feedback')
 def read_feedback():
-    """Display entire list of the feedback entries."""
+    """Display entire list of feedback entries."""
     feedback_list = feedback_model.read_all()
     return render_template('read.html', feedback_list=feedback_list)
 
@@ -52,30 +86,27 @@ def read_feedback():
 def update_feedback(feedback_id):
     """Update an existing feedback entry."""
     if request.method == 'POST':
-        user = request.form.get('user', '').strip()
-        comment = request.form.get('comment', '').strip()
+        user, comment = _process_feedback_form()
         
-        # Input valid
-        if not user or not comment:
-            flash('Both user and comment fields are needed!', 'error')
+        # Validate input
+        is_valid, errors = validate_feedback_data(user, comment)
+        if not is_valid:
+            flash(Messages.FIELDS_REQUIRED, MessageCategories.ERROR)
             return redirect(url_for('update_feedback', feedback_id=feedback_id))
         
-        # update feedback
-        feedback_data = {
-            'user': user,
-            'comment': comment
-        }
+        # Update feedback
+        feedback_data = _create_feedback_data(user, comment)
         
         if feedback_model.update(feedback_id, feedback_data):
-            flash('Feedback updated successfully!', 'success')
+            flash(Messages.FEEDBACK_UPDATED, MessageCategories.SUCCESS)
             return redirect(url_for('read_feedback'))
         else:
-            flash('Error updating feedback. try again.', 'error')
+            flash(Messages.UPDATE_ERROR, MessageCategories.ERROR)
     
     # Get current feedback data for the form
     current_feedback = feedback_model.get_by_id(feedback_id)
     if not current_feedback:
-        flash('Feedback not found!', 'error')
+        flash(Messages.FEEDBACK_NOT_FOUND, MessageCategories.ERROR)
         return redirect(url_for('read_feedback'))
     
     return render_template('update.html', feedback=current_feedback)
@@ -85,12 +116,13 @@ def update_feedback(feedback_id):
 def delete_feedback(feedback_id):
     """Delete feedback entry."""
     if feedback_model.delete(feedback_id):
-        flash('Feedback deleted successfully!', 'success')
+        flash(Messages.FEEDBACK_DELETED, MessageCategories.SUCCESS)
     else:
-        flash('Error deleting feedback. Please try again.', 'error')
+        flash(Messages.DELETE_ERROR, MessageCategories.ERROR)
     
     return redirect(url_for('read_feedback'))
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    logger.info(f"Starting Flask application on {HOST}:{PORT}")
+    app.run(debug=DEBUG, host=HOST, port=PORT)
