@@ -1,19 +1,29 @@
 
 import sqlite3
 from datetime import datetime
-import os
-#tried using Docstrings for methods and classes for the first time. hopefully they are readable and useful
+import logging
+from typing import Optional, List, Dict, Any
+
+from config import DATABASE_PATH, TIMESTAMP_FORMAT
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
 
 class FeedbackModel:
-    """Model class- handling feedback database operations."""
+    """Model class for handling feedback database operations."""
     
-    def __init__(self, db_path='feedback.db'):
-        """Init feedback model with database path."""
+    def __init__(self, db_path: str = DATABASE_PATH) -> None:
+        """Initialize feedback model with database path.
+        
+        Args:
+            db_path: Path to SQLite database file
+        """
         self.db_path = db_path
-        self.init_database()
+        self._init_database()
     
-    def init_database(self):
-        """Initiallise the database and create feedback table if not already there."""
+    def _init_database(self) -> None:
+        """Initialize the database and create feedback table if not exists."""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -27,18 +37,20 @@ class FeedbackModel:
                 ''')
                 conn.commit()
         except sqlite3.Error as e:
-            print(f"Database initialisation error: {e}")
+            logger.error(f"Database initialization error: {e}")
+            raise
     
-    def create(self, data):
-        """
-        Create new feedback entry.
+    def create(self, data: Dict[str, str]) -> bool:
+        """Create new feedback entry.
         
-        Args:data (dict): Dictionary with 'user' and 'comment' keys
+        Args:
+            data: Dictionary with 'user' and 'comment' keys
             
-        Returns:bool: True if successful, False otherwise
+        Returns:
+            True if successful, False otherwise
         """
         try:
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            timestamp = self._get_current_timestamp()
             
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -50,18 +62,26 @@ class FeedbackModel:
                 return True
                 
         except sqlite3.Error as e:
-            print(f"Error creating feedback: {e}")
+            logger.error(f"Error creating feedback: {e}")
             return False
     
-    def read_all(self):
-        """
-        Read all feedback entries from the dbse.
+    def _get_current_timestamp(self) -> str:
+        """Get current timestamp as formatted string.
         
-        Returns a list of dictionaries containing feedback data
+        Returns:
+            Formatted timestamp string
+        """
+        return datetime.now().strftime(TIMESTAMP_FORMAT)
+    
+    def read_all(self) -> List[Dict[str, Any]]:
+        """Read all feedback entries from the database.
+        
+        Returns:
+            List of dictionaries containing feedback data
         """
         try:
             with sqlite3.connect(self.db_path) as conn:
-                conn.row_factory = sqlite3.Row  #access cols by name
+                conn.row_factory = sqlite3.Row  # Access columns by name
                 cursor = conn.cursor()
                 cursor.execute('''
                     SELECT id, user, comment, timestamp
@@ -70,20 +90,21 @@ class FeedbackModel:
                 ''')
                 rows = cursor.fetchall()
                 
-                # convert to list of dictionaries
+                # Convert to list of dictionaries
                 return [dict(row) for row in rows]
                 
         except sqlite3.Error as e:
-            print(f"Error reading feedback: {e}")
+            logger.error(f"Error reading feedback: {e}")
             return []
     
-    def get_by_id(self, feedback_id):
-        """
-        Get a specific feedback by the ID.
+    def get_by_id(self, feedback_id: int) -> Optional[Dict[str, Any]]:
+        """Get a specific feedback entry by ID.
         
-        Args:feedback_id (int)
+        Args:
+            feedback_id: The ID of the feedback entry
             
-        Returns:dict
+        Returns:
+            Dictionary containing feedback data or None if not found
         """
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -99,19 +120,21 @@ class FeedbackModel:
                 return dict(row) if row else None
                 
         except sqlite3.Error as e:
-            print(f"Error getting feedback by ID: {e}")
+            logger.error(f"Error getting feedback by ID: {e}")
             return None
     
-    def update(self, feedback_id, data):
-        """
-        Update an already done feedback entry.
+    def update(self, feedback_id: int, data: Dict[str, str]) -> bool:
+        """Update an existing feedback entry.
         
-        Args:feedback_id (int), data (dict)
+        Args:
+            feedback_id: The ID of the feedback to update
+            data: Dictionary with 'user' and 'comment' keys
             
-        Returns:bool
+        Returns:
+            True if successful, False otherwise
         """
         try:
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            timestamp = self._get_current_timestamp()
             
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -127,16 +150,17 @@ class FeedbackModel:
                 return False
                 
         except sqlite3.Error as e:
-            print(f"Error updating feedback: {e}")
+            logger.error(f"Error updating feedback: {e}")
             return False
     
-    def delete(self, feedback_id):
-        """
-        Delete an entry.
+    def delete(self, feedback_id: int) -> bool:
+        """Delete a feedback entry.
         
-        Args:feedback_id (int)
+        Args:
+            feedback_id: The ID of the feedback to delete
             
-        Returns:bool: 
+        Returns:
+            True if successful, False otherwise
         """
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -149,5 +173,5 @@ class FeedbackModel:
                 return False
                 
         except sqlite3.Error as e:
-            print(f"Error deleting the feedback: {e}")
+            logger.error(f"Error deleting feedback: {e}")
             return False
