@@ -29,7 +29,7 @@ jobs:
       - name: Run tests with coverage (fail if coverage < 70%)
         working-directory: ./feedback_app
         run: |
-          pytest --cov=feedback_app --cov-report=xml --cov-report=term --cov-fail-under=70
+          pytest --cov=. --cov-report=xml --cov-report=term --cov-fail-under=70
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v2
