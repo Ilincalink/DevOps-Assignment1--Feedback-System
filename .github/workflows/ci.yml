@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-and-build:
+    name: Test, Coverage and Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r feedback_app/requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run tests with coverage (fail if coverage < 70%)
+        working-directory: ./feedback_app
+        run: |
+          pytest --cov=feedback_app --cov-report=xml --cov-report=term --cov-fail-under=70
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image (CI)
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: feedback-app:ci-${{ github.sha }}
