@@ -1,5 +1,5 @@
 
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, g
 
 from models import FeedbackModel
 from config import SECRET_KEY, DEBUG, HOST, PORT, Messages, MessageCategories
@@ -11,6 +11,30 @@ setup_logging()
 
 import logging
 logger = logging.getLogger(__name__)
+
+# Instrumentation
+import time
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+
+# Start time for uptime metric
+APP_START_TIME = time.time()
+
+# Prometheeus metrics
+REQUEST_COUNT = Counter(
+    'app_requests_total',
+    'Total HTTP requests',
+    ['method', 'endpoint', 'http_status']
+)
+REQUEST_LATENCY = Histogram(
+    'app_request_latency_seconds',
+    'Request latency in seconds',
+    ['method', 'endpoint']
+)
+REQUEST_EXCEPTIONS = Counter(
+    'app_exceptions_total',
+    'Total exceptions raised by the application',
+    ['endpoint']
+)
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
@@ -43,6 +67,52 @@ def _create_feedback_data(user: str, comment: str) -> dict[str, str]:
 
 
 feedback_model = FeedbackModel()
+
+
+# Metrics hooks
+@app.before_request
+def _before_request_metrics():
+    g._req_start_time = time.time()
+
+
+@app.after_request
+def _after_request_metrics(response):
+    try:
+        start = getattr(g, '_req_start_time', None)
+        if start is not None:
+            latency = time.time() - start
+            endpoint = (request.endpoint or 'unknown')
+            REQUEST_LATENCY.labels(request.method, endpoint).observe(latency)
+            REQUEST_COUNT.labels(request.method, endpoint, str(response.status_code)).inc()
+    except Exception:
+        logger.exception('Metrics collection failed')
+    return response
+
+
+@app.errorhandler(Exception)
+def _handle_exception_metrics(e):
+    endpoint = (request.endpoint or 'unknown')
+    REQUEST_EXCEPTIONS.labels(endpoint).inc()
+    raise e
+
+
+@app.route('/metrics')
+def metrics():
+    """Prometheus metrics endpoint."""
+    data = generate_latest()
+    return data, 200, {'Content-Type': CONTENT_TYPE_LATEST}
+
+
+@app.route('/health')
+def health():
+    """Basic health endpoint."""
+    uptime_seconds = int(time.time() - APP_START_TIME)
+    status = {
+        'status': 'ok',
+        'uptime_seconds': uptime_seconds,
+        'db_path': getattr(feedback_model, 'db_path', 'unknown')
+    }
+    return jsonify(status), 200
 
 
 @app.route('/')
