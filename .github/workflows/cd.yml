@@ -24,7 +24,7 @@ jobs:
       - name: Log in to ACR
         run: az acr login --name ${{ secrets.ACR_NAME }}
 
-      - name: Deploy (create or update) Azure Container App
+      - name: Deploy Azure Container App
         env:
           RG: ${{ secrets.AZURE_RESOURCE_GROUP }}
           APP: ${{ secrets.ACA_APP_NAME }}
@@ -34,11 +34,11 @@ jobs:
         run: |
           set -e
 
-          # Ensure Container Apps extension is installed
+          # Ensure Container Apps extension
           az config set extension.use_dynamic_install=yes_without_prompt
           az extension add --name containerapp || az extension update --name containerapp || true
 
-          # Create or update the container app
+          # Create OR update the Container App
           if az containerapp show --name "$APP" --resource-group "$RG" >/dev/null 2>&1; then
             echo "Updating Container App $APP..."
             az containerapp update \
@@ -58,3 +58,4 @@ jobs:
               --target-port 5001 \
               --location "$REGION" \
               --assign-identity system
+          fi
