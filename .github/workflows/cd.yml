@@ -44,9 +44,7 @@ jobs:
               --name "$APP" \
               --resource-group "$RG" \
               --image "$IMAGE" \
-              # optionally update ingress + port if needed
-              --ingress external \
-              --target-port 5001
+
 
           else
             echo "Creating new Container App $APP..."
