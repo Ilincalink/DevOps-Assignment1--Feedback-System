@@ -1,4 +1,4 @@
-name: CI
+name: CI Pipeline
 
 on:
   push:
@@ -50,7 +50,7 @@ jobs:
 
       - name: Login to ACR
         run: |
-          az acr login --name ${{ secrets.ACR_NAME }}
+          az acr login --name ${{ secrets.ACR_NAME }} && echo "ACR login successful"
 
       - name: Build and push image to ACR
         uses: docker/build-push-action@v4
