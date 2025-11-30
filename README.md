@@ -65,85 +65,120 @@ feedback_app/
 
 2. **Navigate to the feedback_app directory**:
    ```bash
-   cd feedback_app
-   ```
+   # HindSight — Feedback System
 
-3. **Create a venv** (recommended):
-   ```bash
-   python -m venv venv
-   ```
+   A simple CRUD feedback application built with Flask and SQLite, packaged for containerized deployment with monitoring and CI/CD.
 
-4. **Activate the virtual environment**:
-   - On macOS/Linux:
+   ## Features
+
+   - Create, read, update, delete feedback entries (user + comment)
+   - Input validation in the web layer and centralized validators
+   - Prometheus metrics (`/metrics`) and a basic `/health` endpoint
+   - Dockerized image and docker-compose stack with Prometheus + Grafana
+   - GitHub Actions CI (tests, coverage, build) and CD (push to ACR + deploy to Container Apps)
+
+   ## Quick links
+
+   - App entry: `feedback_app/app.py`
+   - Model: `feedback_app/models.py` (`FeedbackModel`)
+   - Validation: `feedback_app/validators.py` (`validate_feedback_data`)
+   - Tests: `feedback_app/tests/`
+   - Dockerfile: `Dockerfile`
+   - Compose: `docker-compose.yml`
+   - CI/CD: `.github/workflows/ci.yml`, `.github/workflows/cd.yml`
+
+   ## Requirements
+
+   - Python 3.12 (recommended)
+   - Docker (for container runs)
+   - Docker Compose (optional, for monitoring stack)
+
+   ## Local development (recommended)
+
+   1. Clone and open repo:
+      ```bash
+      git clone <repo-url>
+      cd DevOps-Assignment1--Feedback-System
+      ```
+
+   2. Create and activate a virtual environment:
+      ```bash
+      python -m venv .venv
+      source .venv/bin/activate    # macOS/Linux
+      .\.venv\Scripts\activate   # Windows (PowerShell)
+      ```
+
+   3. Install runtime dependencies:
+      ```bash
+      pip install -r feedback_app/requirements.txt
+      ```
+
+   4. Run the app:
+      ```bash
+      # ensure environment variables (see .env.example)
+      python feedback_app/app.py
+      ```
+      Open http://localhost:5001
+
+   ## Docker / Compose
+
+   - Build and run container locally:
      ```bash
-     source venv/bin/activate
+     docker build -t feedback-app:local .
+     docker run --rm -p 5001:5001 --env-file .env.example -v feedback_data:/app/data feedback-app:local
      ```
-   - On Windows:
+   - Run full stack (Prometheus + Grafana):
      ```bash
-     venv\Scripts\activate
+     docker-compose up --build
      ```
+   - Container exposes port `5001` (Dockerfile `EXPOSE 5001`) and persists DB/logs via `/app/data` and `/app/logs`.
 
-5. **Install Flask**:
-   ```bash
-   pip install flask
+   ## Testing
+
+   1. Install test deps:
+      ```bash
+      cd feedback_app
+      pip install -r requirements-test.txt
+      ```
+   2. Run tests:
+      ```bash
+      python -m pytest tests/ -v
+      ```
+   3. Run with coverage:
+      ```bash
+      python -m pytest --cov=. --cov-report=html --cov-report=term-missing tests/ -v
+      # open htmlcov/index.html
+      ```
+
+   Notes:
+   - Unit tests target the model and helpers; integration tests exercise Flask routes with a temporary SQLite DB.
+   - CI enforces a coverage threshold before image push (see `.github/workflows/ci.yml`).
+
+   ## CI/CD
+
+   - CI workflow runs tests, measures coverage and builds/pushes Docker images to Azure Container Registry (ACR). See `.github/workflows/ci.yml`.
+   - CD workflow (`.github/workflows/cd.yml`) triggers on successful CI runs for `main`, logs into Azure and updates the Container App using images in ACR.
+   - Secrets required for GitHub Actions: `AZURE_CREDENTIALS` / service principal fields, `ACR_NAME`, `ACR_REPOSITORY`, `AZURE_RESOURCE_GROUP`, `ACA_ENVIRONMENT`, `ACA_APP_NAME`, `AZURE_REGION`.
+
+   ## Validation vs Persistence
+
+   - Input validation and sanitization are performed in the web layer using `feedback_app/validators.py` (`validate_feedback_data`).
+   - The persistence layer `FeedbackModel` (`feedback_app/models.py`) performs CRUD operations but does not perform additional input validation — controllers must validate before calling the model.
+
+   ## Monitoring
+
+   - Prometheus config: `prometheus/prometheus.yml` (scrapes `/metrics`).
+   - Grafana datasource: `grafana/provisioning/datasources/datasources.yml`.
+   - The app exposes `/metrics` and `/health` and records request counts, latencies and exceptions.
+
+   ## Environment
+   See `.env.example` for recommended environment variables (SECRET_KEY, DEBUG, HOST, PORT, DATABASE_PATH, LOG_LEVEL, LOG_FILE).
+
+   ## Contributing / Notes
+   - Follow `feedback_app/REFACTORING_SUMMARY.md` for refactor rationale.
+   - Ensure `python-version` in CI and local environment matches (3.12) to avoid subtle incompatibilities.
+
    ```
-
-6. **Run the application**:
-   ```bash
-   flask run
-   ```
-   Or:
-   ```bash
-   python app.py
-   ```
-
-7. **Access the application**:
-   Open web browser and go to `http://localhost:5001`
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/` | Redirects to feedback list |
-| GET/POST | `/create_feedback` | Create new feedback |
-| GET | `/read_feedback` | View all feedback entries |
-| GET/POST | `/update_feedback/<id>` | Update specific feedback |
-| GET | `/delete_feedback/<id>` | Delete specific feedback |
-
-## Usage
-
-1. **View Feedback**: Navigate to the home page to see all existing feedback
-2. **Add Feedback**: Click "Add New Feedback" to submit new feedback
-3. **Edit Feedback**: Click "Edit" on any feedback card to modify it
-4. **Delete Feedback**: Click "Delete" on any feedback card to remove it (with confirmation)
-
-## Testing
-
-The application includes input validation and error handling:
-- Empty user names and comments are rejected
-- Flash messages provide user feedback
-- Database errors are handled gracefully
-- Confirmation dialogs prevent accidental deletions
-
-## Development Notes
-
-### Code Quality
-- Follows PEP 8 style guidelines
-- Comprehensive comments and docstrings
-- Error handling for database operations
-- Input validation and sanitization
-
-### Security Considerations
-- Input validation prevents empty submissions
-- SQLite parameterized queries prevent SQL injection
-- Flash messages provide user feedback without exposing system details
-
-### Future Enhancements
-- User authentication and authorization
-- Pagination for large feedback lists
-- Search and filtering capabilities
-- Email notifications for new feedback
-- API endpoints for external integrations
 
 
 
